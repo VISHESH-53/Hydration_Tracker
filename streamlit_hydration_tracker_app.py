@@ -18,15 +18,19 @@ DATA_FILE = "water_intake_log.csv"
 def load_data():
     """Load water intake data from a CSV file. If the file doesn't exist, create it."""
     if not os.path.exists(DATA_FILE):
-        df = pd.DataFrame(columns=["Timestamp", "Amount (ml)"])
-        df.to_csv(DATA_FILE, index=False)
-        return df
+        # If the file doesn't exist, create it with the correct headers
+        pd.DataFrame(columns=["Timestamp", "Amount (ml)"]).to_csv(DATA_FILE, index=False)
+    
     try:
-        df = pd.read_csv(DATA_FILE, parse_dates=["Timestamp"])
+        df = pd.read_csv(DATA_FILE)
+        # This is the crucial fix: Ensure the 'Timestamp' column is always treated as a datetime object.
+        # This corrects the issue where an empty CSV leads to an 'object' dtype instead of 'datetime'.
+        df['Timestamp'] = pd.to_datetime(df['Timestamp'])
         return df
     except Exception as e:
         st.error(f"Error loading data: {e}")
-        return pd.DataFrame(columns=["Timestamp", "Amount (ml)"])
+        # Create an empty dataframe with correct types as a fallback
+        return pd.DataFrame({'Timestamp': pd.Series(dtype='datetime64[ns]'), 'Amount (ml)': pd.Series(dtype='int')})
 
 def save_data(df):
     """Save the DataFrame to the CSV file."""
