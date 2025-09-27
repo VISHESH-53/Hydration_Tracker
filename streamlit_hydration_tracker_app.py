@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
 from datetime import datetime, date
 import os
 import random
@@ -135,58 +134,36 @@ st.markdown("---") # Visual separator
 col_charts1, col_charts2 = st.columns(2)
 
 with col_charts1:
-    # Daily Intake Visualization (Bar chart of today's logs)
+    # Daily Intake Visualization (using st.bar_chart)
     st.subheader("Today's Intake Log")
     if not today_df.empty:
-        # Create a copy to avoid SettingWithCopyWarning
+        # Prepare data for st.bar_chart
         today_df_copy = today_df.copy()
         today_df_copy['Time'] = today_df_copy['Timestamp'].dt.strftime('%I:%M %p')
+        chart_data = today_df_copy.set_index('Time')[['Amount (ml)']]
         
-        # Matplotlib chart
-        fig, ax = plt.subplots(figsize=(8, 4))
-        ax.bar(today_df_copy['Time'], today_df_copy['Amount (ml)'], color='#1E90FF')
-        
-        # Add labels on top of bars
-        for index, value in enumerate(today_df_copy['Amount (ml)']):
-            ax.text(index, value + 10, str(value), ha='center')
-        
-        ax.set_ylabel('Amount (ml)')
-        ax.set_xlabel('Time of Day')
-        ax.set_title("Water Logged Throughout Today")
-        plt.xticks(rotation=45)
-        ax.grid(axis='y', linestyle='--', alpha=0.7)
-        fig.tight_layout()
-        st.pyplot(fig)
+        st.bar_chart(chart_data)
     else:
         st.info("No water logged yet for today. Let's get started!")
 
 with col_charts2:
-    # Weekly Progress Visualization
+    # Weekly Progress Visualization (using st.bar_chart)
     st.subheader("Your Weekly Progress")
     if not log_df.empty:
         # Group by date
         log_df['Date'] = log_df['Timestamp'].dt.date
-        weekly_summary = log_df.groupby('Date')['Amount (ml)'].sum().reset_index().tail(7)
+        weekly_summary = log_df.groupby('Date')['Amount (ml)'].sum().reset_index()
         
         # Ensure all of the last 7 days are present
         last_7_days = pd.to_datetime(pd.date_range(end=today, periods=7)).date
-        weekly_summary = pd.DataFrame({'Date': last_7_days}).merge(weekly_summary, on='Date', how='left').fillna(0)
+        weekly_df = pd.DataFrame({'Date': last_7_days}).merge(weekly_summary, on='Date', how='left').fillna(0)
         
-        weekly_summary['Day'] = pd.to_datetime(weekly_summary['Date']).dt.strftime('%a, %b %d')
+        weekly_df['Day'] = pd.to_datetime(weekly_df['Date']).dt.strftime('%a, %b %d')
+        chart_data_weekly = weekly_df.set_index('Day')[['Amount (ml)']]
 
-        # Matplotlib chart
-        fig2, ax2 = plt.subplots(figsize=(8, 4))
-        ax2.bar(weekly_summary['Day'], weekly_summary['Amount (ml)'], color='#4682B4')
-        ax2.axhline(y=daily_goal, color='r', linestyle='--', label='Daily Goal')
-        ax2.legend()
-        
-        ax2.set_ylabel('Total Amount (ml)')
-        ax2.set_xlabel('Day')
-        ax2.set_title('Total Water Intake Over the Last 7 Days')
-        plt.xticks(rotation=45)
-        ax2.grid(axis='y', linestyle='--', alpha=0.7)
-        fig2.tight_layout()
-        st.pyplot(fig2)
+        st.bar_chart(chart_data_weekly)
+        st.caption(f"A red line on the chart would indicate your daily goal of {daily_goal} ml.")
+
     else:
         st.info("Log some water to see your weekly progress chart.")
 
